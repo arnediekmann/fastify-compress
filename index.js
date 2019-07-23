@@ -42,6 +42,12 @@ function compressPlugin (fastify, opts, next) {
     supportedEncodings.push('br')
   }
 
+  if (opts.preferredEncodings) {
+    supportedEncodings.sort((a, b) => {
+      return (opts.preferredEncodings.indexOf(a) > supportedEncodings.indexOf(b)) ? 1 : -1
+    })
+  }
+
   next()
 
   function compress (payload) {
@@ -164,16 +170,17 @@ function closeStream (payload) {
 function getEncodingHeader (supportedEncodings, request) {
   var header = request.headers['accept-encoding']
   if (!header) return undefined
-  var acceptEncodings = header.split(',')
-  for (var i = 0; i < acceptEncodings.length; i++) {
-    var acceptEncoding = acceptEncodings[i].trim()
-    if (supportedEncodings.indexOf(acceptEncoding) > -1) {
-      return acceptEncoding
-    }
-    if (acceptEncoding.indexOf('*') > -1) {
+
+  var acceptEncodings = header.split(',').map(a => a.trim())
+
+  for (var i = 0; i < supportedEncodings.length; i++) {
+    if (acceptEncodings.includes(supportedEncodings[i])) {
+      return supportedEncodings[i]
+    } else if (acceptEncodings.indexOf('*') > -1) {
       return 'gzip'
     }
   }
+
   return null
 }
 
